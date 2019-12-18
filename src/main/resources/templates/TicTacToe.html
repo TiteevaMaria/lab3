@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>TicTacToe</title>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+</head>
+<body>
+<div id="app">
+    <table border="1" height="170" width="170">
+
+        <tr v-for="row in matrix" align="center" valign="center">
+            <td v-text="row[0]" height="50" width="50"></td>
+            <td v-text="row[1]" height="50" width="50"></td>
+            <td v-text="row[2]" height="50" width="50"></td>
+        </tr>
+    </table>
+    <p><label v-text="Inf"></label></p>
+    <p><label v-text="Egogo"></label></p>
+</div>
+<script>
+    var ws = new WebSocket(`ws://${window.location.host}/ws`);
+
+    var app = new Vue({
+        el: '#app',
+        data:
+            {
+                matrix:
+                    [
+                        ['', '', ''],
+                        ['', '', ''],
+                        ['', '', '']
+                    ],
+                Inf: "",
+                Ego: "",
+                Egogo: ""
+            },
+        mounted: async function ()
+        {
+            ws.onmessage = async (r) =>
+            {
+                if (JSON.parse(r.data).type === "XO")
+                {
+                    this.Ego = JSON.parse(r.data).content;
+                    this.Egogo = "Вы " + JSON.parse(r.data).content;
+                    var elem = document.getElementsByTagName("td"), i = elem.length;
+                    var self = this;
+                    while (i--)
+                    {
+                        elem[i].onclick = function (i)
+                        {
+                            return function ()
+                            {
+                                var mes =
+                                    {
+                                        type: self.Ego,
+                                        content: (Math.floor(i / 3)).toString() + "," + (i % 3).toString()
+                                    };
+                                ws.send(JSON.stringify(mes))
+                            };
+                        }(i);
+                    }
+                }
+
+                if (JSON.parse(r.data).type === "PlayerInf")
+                {
+                    this.Inf = "Сообщение от сервера: " + JSON.parse(r.data).content;
+                }
+
+                if (JSON.parse(r.data).type === 'X' || JSON.parse(r.data).type === 'O')
+                {
+                    var coords = JSON.parse(r.data).content.split(",");
+                    console.log(coords);
+                    var x = Number(coords[0]);
+                    var y = Number(coords[1]);
+                    var tmp = this.matrix;
+                    tmp[x][y] = JSON.parse(r.data).type;
+                    this.matrix = tmp;
+                    console.log(this.matrix);
+                }
+            }
+        }
+
+    })
+</script>
+</body>
+</html>
